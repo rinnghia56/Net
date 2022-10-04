@@ -45,8 +45,25 @@ namespace DatingApp.APi.Controllers
 
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] string value)
+        public IActionResult Login([FromBody] AuthUserDto authUserDto)
         {
+            authUserDto.Username = authUserDto.Username.ToLower();
+
+            var curentUser = _context.AppUsers.FirstOrDefault(u => u.username == authUserDto.Username);
+            if (curentUser == null)
+            {
+                return Unauthorized("username already  in use");
+
+            }
+            using var hmac = new HMACSHA512(curentUser.PasswordSalt);
+            var passwordBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(authUserDto.Password));
+            for (int i = 0; i < curentUser.PasswordHash.Length; i++)
+            {
+                if (curentUser.PasswordHash[i] != passwordBytes[i])
+                {
+                    return Unauthorized("password is invalid");
+                }
+            }
             return Ok();
         }
 
